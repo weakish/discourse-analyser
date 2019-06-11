@@ -47,10 +47,7 @@ async function testFetch(url, month) {
         }
     }
     let nextPage = res.body.topic_list.more_topics_url
-    console.log(nextPage)
-    console.log(topicsWithinMonth.length)
-    await testFetch(nextPage, month)
-    return topicsWithinMonth
+    return await testFetch(nextPage, month)
 }
 
 (async () => {
