@@ -1,7 +1,7 @@
 const superagent = require('superagent')
 
-const apiBase = 'https://example.com' 
-const url = '/c/exampleCategory/?order=created'
+const apiBase = process.env.API_BASE 
+const url = process.env.API_URL
 
 let topicsWithinMonth = []
 
@@ -36,8 +36,8 @@ function compareMonth(date, month) {
 async function testFetch(url, month) {
     const res = await superagent.get(apiBase + url).set('Accept', 'application/json')
     topics = res.body.topic_list.topics
-    for (t of topics) {
-        let c = compareMonth(t.created_at, month)
+    for (const t of topics) {
+        const c = compareMonth(t.created_at, month)
         if (c === 0) {
             topicsWithinMonth.push(t)
         } else if (c < 0) {
@@ -50,8 +50,36 @@ async function testFetch(url, month) {
     return await testFetch(nextPage, month)
 }
 
+function categoryName(id) {
+    const names = {
+        "9": "综合讨论",
+        "13": "账户和使用",
+        "14": "SDK / API",
+        "15": "控制台",
+        "17": "数据存储",
+        "19": "实时通信",
+        "20": "推送通知",
+        "22": "云引擎",
+        "24": "开发组件",
+        "32": "小程序",
+        "36": "游戏解决方案"
+    }
+    return names[id] || id
+}
+
 (async () => {
-    let result = await testFetch(url, "03")
-    console.log(result.length)
+    let topics = await testFetch(url, process.argv[2])
+    let categories = {}
+    for (const t of topics) {
+        const categoryID = t.category_id.toString()
+        if (categories.hasOwnProperty(categoryID)) {
+            categories[categoryID] += 1
+        } else {
+            categories[categoryID] = 1
+        }
+    }
+    for (const id in categories) {
+        console.log(`${categoryName(id)}: ${categories[id]}`)
+    }
 })();
 
