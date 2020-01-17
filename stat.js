@@ -5,45 +5,26 @@ const url = process.env.API_URL
 
 let topicsWithinMonth = []
 
-function compare(x, y) {
-    if (x < y) {
-        return -1
-    } else if (x === y) {
-        return 0
-    } else { // x > y
-        return 1 
-    }
-}
-
-function compareMonth(date, month) {
-    const yyyy = date.slice(0, 4)
-    const mm = date.slice(5, 7)
-    const currentYear = new Date(Date.now()).getFullYear().toString()
-
-    const compareYearResult = compare(yyyy, currentYear)
-    if (compareYearResult === 0) {
-        const compareMonthResult = compare(mm, month)
-        if (compareMonthResult === 0) {
-            return 0
-        } else {
-            return compareMonthResult
-        }
-    } else {
-        return compareYearResult
-    }
-}
-
 async function testFetch(url, month) {
+    const currentMonth = new Date(Date.now()).getMonth()
+    const nextMonth = month + 1
+    const currentYear = new Date(Date.now()).getFullYear()
+    const lastYear = currentYear - 1
+    const year =  (currentMonth < month) ? lastYear : currentYear
+    const dateEnd = new Date(year, nextMonth)
+    const dateStart = new Date(year, month)
     const res = await superagent.get(apiBase + url).set('Accept', 'application/json')
     topics = res.body.topic_list.topics
     for (const t of topics) {
-        const c = compareMonth(t.created_at, month)
-        if (c === 0) {
-            topicsWithinMonth.push(t)
-        } else if (c < 0) {
-            return topicsWithinMonth
-        } else {
+        const created = new Date(t.created_at)
+        if (created > dateEnd) {
             continue
+        } else {
+            if (created > dateStart) {
+                topicsWithinMonth.push(t)
+            } else {
+                return topicsWithinMonth
+            }
         }
     }
     let nextPage = res.body.topic_list.more_topics_url
@@ -68,7 +49,8 @@ function categoryName(id) {
 }
 
 (async () => {
-    let topics = await testFetch(url, process.argv[2])
+    // In JavaScript, Date() month starts from zero
+    let topics = await testFetch(url, parseInt(process.argv[2]) - 1)
     let categories = {}
     for (const t of topics) {
         const categoryID = t.category_id.toString()
